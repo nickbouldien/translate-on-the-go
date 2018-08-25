@@ -7,6 +7,15 @@ import (
 	"cloud.google.com/go/translate"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
+	"github.com/gorilla/mux"
+	"net/http"
+)
+
+// TODO: make these structs with "abbreviation" ("en") and "display name" ("english") fields??
+const (
+	EN  = "en" // english
+	ES  = "es" // español
+	PT  = "pt" // português
 )
 
 func main() {
@@ -21,7 +30,7 @@ func main() {
 
 	// Sets the text to translate.
 
-	selectedLang := "en"
+	selectedLang := EN
 	text := "Hello, world!"
 	// Sets the target language.
 
@@ -44,6 +53,19 @@ func main() {
 
 	fmt.Printf("Text: %v\n", text)
 	fmt.Printf("Translation: %v\n", translations[0].Text)
+
+
+	r := mux.NewRouter()
+	r.HandleFunc("/", HomeHandler)
+	http.Handle("/", r)
+	http.ListenAndServe(":5000", r)
+
+}
+
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	//vars := mux.Vars(r)
+	w.WriteHeader(http.StatusOK)
+	return
 }
 
 func TranslateText(text string, language string) (string, error) {
