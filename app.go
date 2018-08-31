@@ -1,18 +1,20 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"net/http"
+	"fmt"
 	"log"
+	"net/http"
+
 	"cloud.google.com/go/translate"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
-	"encoding/json"
+
+	"github.com/gorilla/mux"
+	"translate_go/utils"
 )
 
 type App struct {
 	Client *translate.Client
-	//Ctx *context.Context
 	Router *mux.Router
 }
 
@@ -30,33 +32,55 @@ func (a *App) Init() {
 	a.initRoutes()
 }
 
+func (a *App) Start() {
+	fmt.Println("starting server on port 5000")
+	http.ListenAndServe(":5000", a.Router)
+}
+
 func (a *App) initRoutes() {
+	a.Router.HandleFunc("/", HomeHandler)
+	a.Router.HandleFunc("/test", TestHandler)
+
 	a.Router.HandleFunc("/list-languages", a.listLangs).Methods("GET")
 }
 
 func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	lang := language.English
 
+	fmt.Println("client: ", a.Client)
+
 	langs, err := a.Client.SupportedLanguages(ctx, lang)
 	if err != nil {
-		log.Fatalf("Failed to get supported languages: %v", err)
+		msg := "Failed to get supported languages: " + err.Error()
 
+		utils.RespondWithError(w, http.StatusInternalServerError, msg)
 	}
+	fmt.Println("langs: ", langs)
 
-	RespondWithJSON(w, http.StatusOK, langs)
+	utils.RespondWithJSON(w, http.StatusOK, langs)
 	return
 }
 
 
-//func respondWithError(w http.ResponseWriter, code int, message string) {
-//	respondWithJSON(w, code, map[string]string{"error": message})
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	response := map[string]string{"home": "en casa!"}
+	utils.RespondWithJSON(w, http.StatusOK, response)
+	return
+}
+
+func TestHandler(w http.ResponseWriter, r *http.Request) {
+	response := map[string]string{"test": "success"}
+	utils.RespondWithJSON(w, http.StatusOK, response)
+}
+
+
+//func TranslateText(text string, language string) (string, error) {
+//
 //}
 
-func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
-}
+//func PickRandomLanguage() string {
+//
+//}
+
