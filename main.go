@@ -1,14 +1,13 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	"cloud.google.com/go/translate"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
 	"github.com/gorilla/mux"
 	"net/http"
+	"log"
+	"fmt"
 )
 
 // TODO: make these structs with "abbreviation" ("en") and "display name" ("english") fields??
@@ -39,11 +38,12 @@ func main() {
 		log.Fatalf("Failed to parse target language: %v", err)
 	}
 
-	langs, err := client.SupportedLanguages(ctx, lang)
+	langs, err := client.SupportedLanguages(ctx, target)
 	if err != nil {
 		log.Fatalf("Failed to get supported languages: %v", err)
 	}
 
+	fmt.Println("langs: ", langs)
 
 	// Translates the text into Russian.
 	translations, err := client.Translate(ctx, []string{text}, target, nil)
@@ -57,7 +57,9 @@ func main() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", HomeHandler)
+	r.HandleFunc("/test", TestHandler)
 	http.Handle("/", r)
+	fmt.Println("starting server on port 5000")
 	http.ListenAndServe(":5000", r)
 
 }
@@ -68,10 +70,18 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func TranslateText(text string, language string) (string, error) {
+func TestHandler(w http.ResponseWriter, r *http.Request) {
+	//vars := mux.Vars(r)
 
+	response := map[string]string{"test": "success"}
+	RespondWithJSON(w, http.StatusOK, response)
 }
 
-func PickRandomLanguage() string {
 
-}
+//func TranslateText(text string, language string) (string, error) {
+//
+//}
+
+//func PickRandomLanguage() string {
+//
+//}
