@@ -1,13 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-
 	"cloud.google.com/go/translate"
+	"fmt"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
+	"log"
+	"net/http"
 
 	"github.com/gorilla/mux"
 	"translate_go/utils"
@@ -48,7 +47,7 @@ func (a *App) initRoutes() {
 	a.Router.HandleFunc("/", HomeHandler)
 	a.Router.HandleFunc("/test", TestHandler).Methods("GET")
 
-	a.Router.HandleFunc("/list-languages", a.listLangs).Queries("target", "{target}").Methods("GET")
+	a.Router.HandleFunc("/list-languages", a.listLangs).Methods("GET")
 	a.Router.HandleFunc("/translate", a.translateHandler).Methods("GET", "POST")
 }
 
@@ -56,11 +55,14 @@ func (a *App) translateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("method: ", r.Method)
 
 	lg := r.FormValue("key1")
+	//txt := r.FormValue("text")
 
 	fmt.Println("translate handler: ", lg)
+	//fmt.Println("translate handler: ", lg)
+
 	ctx := r.Context()
 
-	lang := language.Spanish
+	lang := language.BrazilianPortuguese
 	//target, err := language.Parse("ru")
 	//if err != nil {
 	//	log.Fatalf("Failed to parse target language: %v", err)
@@ -88,27 +90,38 @@ func (a *App) translateHandler(w http.ResponseWriter, r *http.Request) {
 //}
 
 func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
-	vals := mux.Vars(r)
-	targetLang := vals["target"]
-	fmt.Println("targetLang: ", targetLang)
-
+	fmt.Println("listlangs")
 	fmt.Println("method: ", r.Method)
 	if r.Method != http.MethodGet {
-		msg := "You cannot use that method "
+		msg := "You cannot use that method"
 		utils.RespondWithError(w, http.StatusMethodNotAllowed, msg)
 		return
 	}
 
+	targetLang := r.URL.Query().Get("target")
+	fmt.Println("targetLang: ", targetLang)
+
+	if targetLang == "" { // TODO: make target language optional, with default being "en"
+		msg := "You must provide a target language (ex. /list-languages?target=pt)"
+		utils.RespondWithError(w, http.StatusBadRequest, msg)
+		return
+	}
+
+	target, err := language.Parse(targetLang)
+	fmt.Println("parsed Target: ", target)
+	if err != nil {
+		msg := "Could not parse the target language.  Verify that it is an available option and formatted correctly (ex. 'en' for english) "
+		utils.RespondWithError(w, http.StatusInternalServerError, msg)
+		return
+	}
+
 	ctx := r.Context()
-	fmt.Println("listlangs")
 
-	lang := language.English
-
-	langs, err := a.Client.SupportedLanguages(ctx, lang)
+	langs, err := a.Client.SupportedLanguages(ctx, target)
 	if err != nil {
 		msg := "Failed to get supported languages: " + err.Error()
-
 		utils.RespondWithError(w, http.StatusInternalServerError, msg)
+		return
 	}
 	//fmt.Println("langs: ", langs)
 	//for _, lang := range langs {
