@@ -1,13 +1,5 @@
 package main
 
-
-// TODO: make these structs with "abbreviation" ("en") and "display name" ("english") fields??
-const (
-	EN  = "en" // english
-	ES  = "es" // español
-	PT  = "pt" // português
-)
-
 func main() {
 	app := App{}
 	app.Init()
