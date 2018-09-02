@@ -22,7 +22,8 @@ I'm always looking up words/phrases (usually en español ou em português).
 
 
 ### Resources:
-- https://cloud.google.com/translate/
+- [Google Translate](https://cloud.google.com/translate/)
+- [Google Cloud Translation API](https://cloud.google.com/translate/docs/) - responsible for all translations
 - https://thewhitetulip.gitbooks.io/webapp-with-golang-anti-textbook/content/
 
 
