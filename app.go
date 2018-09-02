@@ -19,9 +19,9 @@ type TranslateData struct {
 }
 
 type TranslationResponse struct { // not sure about this.  find better way to reuse TranslationData struct??
-	Source language.Tag `json:"sourceLanguage"`
+	Source         language.Tag `json:"sourceLanguage"`
 	TargetLanguage language.Tag `json:"targetLanguage"`
-	TranslatedText string `json:"translatedText"`
+	TranslatedText string       `json:"translatedText"`
 }
 
 type App struct {
