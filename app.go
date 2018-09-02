@@ -18,8 +18,9 @@ type TranslateData struct {
 	Text string `json:"text"`
 }
 
-type TranslationRespose struct { // not sure about this.  find better way to reuse TranslationData struct??
+type TranslationResponse struct { // not sure about this.  find better way to reuse TranslationData struct??
 	Source language.Tag `json:"sourceLanguage"`
+	TargetLanguage language.Tag `json:"targetLanguage"`
 	TranslatedText string `json:"translatedText"`
 }
 
@@ -85,9 +86,10 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 	}
-	var transRes = make(map[string]TranslationRespose)
-	transRes["response"] = TranslationRespose{
+	var transRes = make(map[string]TranslationResponse)
+	transRes["response"] = TranslationResponse{
 		resp[0].Source,
+		lang,
 		resp[0].Text,
 	}
 
@@ -126,11 +128,9 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, msg)
 		return
 	}
-	//fmt.Println("langs: ", langs)
 	//for _, lang := range langs {
 	//	fmt.Fprintf(w, "%q: %s\n", lang.Tag, lang.Name)
 	//}
-
 	utils.RespondWithJSON(w, http.StatusOK, langs)
 	return
 }
@@ -145,7 +145,3 @@ func TestHandler(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string{"test": "success"}
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
-
-//func PickRandomLanguage() string {
-//
-//}
