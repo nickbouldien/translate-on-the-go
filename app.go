@@ -18,6 +18,11 @@ type TranslateData struct {
 	Text string `json:"text"`
 }
 
+type TranslationRespose struct { // not sure about this.  find better way to reuse TranslationData struct??
+	Source language.Tag `json:"sourceLanguage"`
+	TranslatedText string `json:"translatedText"`
+}
+
 type App struct {
 	Client *translate.Client
 	Router *mux.Router
@@ -68,6 +73,7 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("text to translate: ", text)
 
 	lang, err := language.Parse(translationData.Lang)
+
 	if err != nil {
 		msg := "Could not parse the target language.  Verify that it is an available option and formatted correctly (ex. 'en' for english) "
 		utils.RespondWithError(w, http.StatusInternalServerError, msg)
@@ -79,8 +85,13 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 	}
+	var transRes = make(map[string]TranslationRespose)
+	transRes["response"] = TranslationRespose{
+		resp[0].Source,
+		resp[0].Text,
+	}
 
-	utils.RespondWithJSON(w, http.StatusOK, resp)
+	utils.RespondWithJSON(w, http.StatusOK, transRes)
 }
 
 func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
