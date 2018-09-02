@@ -18,13 +18,6 @@ type TranslateData struct {
 	Text string `json:"text"`
 }
 
-// TODO: make these structs with "abbreviation" ("en") and "display name" ("english") fields??
-const (
-	EN  = "en" // english
-	ES  = "es" // español
-	PT  = "pt" // português
-)
-
 type App struct {
 	Client *translate.Client
 	Router *mux.Router
@@ -50,7 +43,7 @@ func (a *App) Start() {
 }
 
 func (a *App) initRoutes() {
-	a.Router.HandleFunc("/", HomeHandler)
+	a.Router.HandleFunc("/", HomeHandler).Methods("GET")
 	a.Router.HandleFunc("/test", TestHandler).Methods("GET")
 
 	a.Router.HandleFunc("/list-languages", a.listLangs).Methods("GET")
@@ -58,9 +51,7 @@ func (a *App) initRoutes() {
 }
 
 func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("translate: ", r.URL)
-	fmt.Println("method: ", r.Method)
-	fmt.Println("body: ", r.Body)
+	fmt.Println("translate: ", r.URL, " ", r.Method)
 
 	var translationData TranslateData
 

@@ -10,7 +10,7 @@ I'm always looking up words/phrases (usually en español ou em português).
 - go install
 - go build
 - ./travel_go
-- test it out on port 5000 (or whatever you are using)
+- test it out on port 5000 (or whatever endpoint/port you decide to use) with one of the routes
 
 
 ### Routes:
@@ -21,9 +21,10 @@ I'm always looking up words/phrases (usually en español ou em português).
 ### Packages:
 
 
-
 ### Resources:
 - https://cloud.google.com/translate/
 - https://thewhitetulip.gitbooks.io/webapp-with-golang-anti-textbook/content/
 
 
+### TODOs:
+- some type of caching - see if requested text has already been translated.  if so, return that text (https://github.com/patrickmn/go-cache ???)
