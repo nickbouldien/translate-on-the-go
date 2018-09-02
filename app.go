@@ -2,6 +2,7 @@ package main
 
 import (
 	"cloud.google.com/go/translate"
+	"encoding/json"
 	"fmt"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
@@ -11,6 +12,11 @@ import (
 	"github.com/gorilla/mux"
 	"translate_go/utils"
 )
+
+type TranslateData struct {
+	Lang string `json:"lang"`
+	Text string `json:"text"`
+}
 
 // TODO: make these structs with "abbreviation" ("en") and "display name" ("english") fields??
 const (
@@ -48,30 +54,36 @@ func (a *App) initRoutes() {
 	a.Router.HandleFunc("/test", TestHandler).Methods("GET")
 
 	a.Router.HandleFunc("/list-languages", a.listLangs).Methods("GET")
-	a.Router.HandleFunc("/translate", a.translateHandler).Methods("GET", "POST")
+	a.Router.HandleFunc("/translate", a.translateText).Methods("POST")
 }
 
-func (a *App) translateHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("translate: ", r.URL)
 	fmt.Println("method: ", r.Method)
+	fmt.Println("body: ", r.Body)
 
-	lg := r.FormValue("key1")
-	//txt := r.FormValue("text")
+	var translationData TranslateData
 
-	fmt.Println("translate handler: ", lg)
-	//fmt.Println("translate handler: ", lg)
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&translationData)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
 
-	ctx := r.Context()
+	fmt.Println("translationData: ", translationData)
 
-	lang := language.BrazilianPortuguese
-	//target, err := language.Parse("ru")
-	//if err != nil {
-	//	log.Fatalf("Failed to parse target language: %v", err)
-	//}
-	fmt.Println("lang: ", lang)
-
-	text := "hola, mundo"
+	text := translationData.Text
 	fmt.Println("text to translate: ", text)
 
+	lang, err := language.Parse(translationData.Lang)
+	if err != nil {
+		msg := "Could not parse the target language.  Verify that it is an available option and formatted correctly (ex. 'en' for english) "
+		utils.RespondWithError(w, http.StatusInternalServerError, msg)
+		return
+	}
+
+	ctx := r.Context()
 	resp, err := a.Client.Translate(ctx, []string{text}, lang, nil)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -80,18 +92,8 @@ func (a *App) translateHandler(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, resp)
 }
 
-//func (a *App) translateText(ctx context.Context , text string, language string) (string, error) {
-//	translation, err := a.Client.Translate(ctx, text, language )
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return translation, nil
-//}
-
 func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("listlangs")
-	fmt.Println("method: ", r.Method)
+	fmt.Println("list-languages: ", r.URL)
 	if r.Method != http.MethodGet {
 		msg := "You cannot use that method"
 		utils.RespondWithError(w, http.StatusMethodNotAllowed, msg)
@@ -99,9 +101,8 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	targetLang := r.URL.Query().Get("target")
-	fmt.Println("targetLang: ", targetLang)
 
-	if targetLang == "" { // TODO: make target language optional, with default being "en"
+	if targetLang == "" { // TODO: make target language optional, with default being "en" ??
 		msg := "You must provide a target language (ex. /list-languages?target=pt)"
 		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
@@ -146,4 +147,3 @@ func TestHandler(w http.ResponseWriter, r *http.Request) {
 //func PickRandomLanguage() string {
 //
 //}
-
