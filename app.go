@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
+	"google.golang.org/api/option"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"translate_go/utils"
 )
 
@@ -30,12 +33,19 @@ type App struct {
 }
 
 func (a *App) Init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading the .env file")
+	}
+	apiKey := os.Getenv("TRANSLATE_API_KEY")
+
 	ctx := context.Background()
 
-	client, err := translate.NewClient(ctx)
+	client, err := translate.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
+
 	a.Client = client
 	defer client.Close()
 
@@ -44,7 +54,10 @@ func (a *App) Init() {
 }
 
 func (a *App) Start() {
-	fmt.Println("starting server on port 5000")
+	port := os.Getenv("PORT")
+
+	fmt.Printf("starting server on port %s \n", port)
+
 	http.ListenAndServe(":5000", a.Router)
 }
 
@@ -99,7 +112,7 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("list-languages: ", r.URL)
 	if r.Method != http.MethodGet {
-		msg := "You cannot use that method"
+		msg := "You cannot use that method. Only the `GET` method is allowed."
 		utils.RespondWithError(w, http.StatusMethodNotAllowed, msg)
 		return
 	}
@@ -128,9 +141,7 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusInternalServerError, msg)
 		return
 	}
-	//for _, lang := range langs {
-	//	fmt.Fprintf(w, "%q: %s\n", lang.Tag, lang.Name)
-	//}
+
 	utils.RespondWithJSON(w, http.StatusOK, langs)
 	return
 }
