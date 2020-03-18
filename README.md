@@ -7,18 +7,20 @@ I'm always looking up words/phrases (usually en español ou em português).
 
 
 ### Setup:
-- go install
-- go build
-- ./travel_go
+- `go install`
+- `go build`
+- `./translate_go`
 - test it out on port 5000 (or whatever endpoint/port you decide to use) with one of the routes
 
 
 ### Routes:
-- /list-languages - lists all possible languages for
-- /test - responds with a 200 status (used to verify server is up and running)
+- `/list-languages` - lists all possible languages to translate to
+- `/test` - responds with a 200 status (used to verify server is up and running)
 
 
 ### Packages:
+- [gorilla mux router](https://github.com/gorilla/mux)
+- [godotenv](https://github.com/joho/godotenv)
 
 
 ### Resources:
