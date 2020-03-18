@@ -70,8 +70,6 @@ func (a *App) initRoutes() {
 }
 
 func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("translate: ", r.URL, " ", r.Method)
-
 	var translationData TranslateData
 
 	decoder := json.NewDecoder(r.Body)
@@ -81,10 +79,7 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("translationData: ", translationData)
-
 	text := translationData.Text
-	fmt.Println("text to translate: ", text)
 
 	lang, err := language.Parse(translationData.Lang)
 
@@ -110,7 +105,6 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("list-languages: ", r.URL)
 	if r.Method != http.MethodGet {
 		msg := "You cannot use that method. Only the `GET` method is allowed."
 		utils.RespondWithError(w, http.StatusMethodNotAllowed, msg)
@@ -126,7 +120,6 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	target, err := language.Parse(targetLang)
-	fmt.Println("parsed Target: ", target)
 	if err != nil {
 		msg := "Could not parse the target language.  Verify that it is an available option and formatted correctly (ex. 'en' for english) "
 		utils.RespondWithError(w, http.StatusInternalServerError, msg)
