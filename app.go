@@ -21,7 +21,7 @@ type TranslateData struct {
 	Text string `json:"text"`
 }
 
-type TranslationResponse struct { // not sure about this.  find better way to reuse TranslationData struct??
+type TranslationResponse struct {
 	Source         language.Tag `json:"sourceLanguage"`
 	TargetLanguage language.Tag `json:"targetLanguage"`
 	TranslatedText string       `json:"translatedText"`
@@ -58,7 +58,7 @@ func (a *App) Start() {
 
 	fmt.Printf("starting server on port %s \n", port)
 
-	http.ListenAndServe(":5000", a.Router)
+	http.ListenAndServe(fmt.Sprintf(":%s", port) , a.Router)
 }
 
 func (a *App) initRoutes() {
@@ -146,13 +146,19 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"home": "en casa!"}
+func HomeHandler(w http.ResponseWriter, _r *http.Request) {
+	routes := map[string]string{
+		"/list-languages": "GET",
+		"/translate": "POST",
+	}
+
+	response := map[string]map[string]string{"routes": routes}
+
 	utils.RespondWithJSON(w, http.StatusOK, response)
 	return
 }
 
-func TestHandler(w http.ResponseWriter, r *http.Request) {
+func TestHandler(w http.ResponseWriter, _r *http.Request) {
 	response := map[string]string{"test": "success"}
 	utils.RespondWithJSON(w, http.StatusOK, response)
 }
