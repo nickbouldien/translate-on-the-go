@@ -14,8 +14,9 @@ I'm always looking up words/phrases (usually en español ou em português).
 
 
 ### Routes:
-- `/list-languages?target={target_language_code}` - lists all possible languages to translate to
-- `/test` - responds with a 200 status (used to verify server is up and running)
+- GET `/list-languages?target={target_language_code}` - lists all possible languages to translate to
+- POST `/translate` - translate text to a target language
+- GET `/test` - responds with a 200 status (used to verify server is up and running)
 
 target language code info: https://cloud.google.com/translate/docs/languages
 
@@ -104,7 +105,7 @@ response:
 ### Resources:
 - [Google Translate](https://cloud.google.com/translate/)
 - [Google Cloud Translation API](https://cloud.google.com/translate/docs/) - responsible for all translations
-- https://thewhitetulip.gitbooks.io/webapp-with-golang-anti-textbook/content/
+- [webapp-with-golang-anti-textbook](https://thewhitetulip.gitbooks.io/webapp-with-golang-anti-textbook/content/)
 
 
 ### TODOs:
