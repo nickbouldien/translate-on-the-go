@@ -32,12 +32,14 @@ type App struct {
 	Router *mux.Router
 }
 
+const apiKey = "TRANSLATE_API_KEY"
+
 func (a *App) Init() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading the .env file")
 	}
-	apiKey := os.Getenv("TRANSLATE_API_KEY")
+
+	apiKey := os.Getenv(apiKey)
 
 	ctx := context.Background()
 
@@ -58,7 +60,7 @@ func (a *App) Start() {
 
 	fmt.Printf("starting server on port %s \n", port)
 
-	http.ListenAndServe(fmt.Sprintf(":%s", port) , a.Router)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port) , a.Router))
 }
 
 func (a *App) initRoutes() {
@@ -94,6 +96,7 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 	}
+
 	var transRes = make(map[string]TranslationResponse)
 	transRes["response"] = TranslationResponse{
 		resp[0].Source,
@@ -113,7 +116,7 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 
 	targetLang := r.URL.Query().Get("target")
 
-	if targetLang == "" { // TODO: make target language optional, with default being "en" ??
+	if targetLang == "" { // TODO: make target language optional, with default being english ("en") ??
 		msg := "You must provide a target language (ex. /list-languages?target=pt)"
 		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
