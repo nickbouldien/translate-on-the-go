@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-redis/redis"
+
 	"cloud.google.com/go/translate"
 	"golang.org/x/net/context"
 	"golang.org/x/text/language"
@@ -97,20 +99,24 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	// check to see if the translation is in the cache
 	val, err := a.Cache.Get(key)
 	if err != nil {
-		fmt.Println("cache error: ", err.Error())
-		fmt.Println("there was a problem getting the value from the cache. Continuing...")
+		if err == redis.Nil {
+			fmt.Println("the key does not exist")
+		} else {
+			fmt.Println("cache error: ", err.Error())
+			fmt.Println("there was a problem getting the value from the cache. Continuing...")
+		}
 	}
 
 	var transRes = make(map[string]TranslationResponse)
 	if len(val) > 0 {
 		// return the value from the cache
-		fmt.Println("got the value from the cache: ", val)
-
 		var cachedTranslation TranslationResponse
 		err := json.Unmarshal(val, &cachedTranslation)
 		if err != nil {
 			fmt.Println("error marshalling the data to JSON ", err)
 		}
+
+		fmt.Println("got the value from the cache ", cachedTranslation)
 
 		utils.RespondWithJSON(w, http.StatusOK, cachedTranslation)
 		return
