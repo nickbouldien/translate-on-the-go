@@ -13,7 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"translate_go/utils"
+	"translate-on-the-go/utils"
 )
 
 type TranslateData struct {
