@@ -1,19 +1,24 @@
 package main
 
 import (
-	"cloud.google.com/go/translate"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/context"
-	"golang.org/x/text/language"
-	"google.golang.org/api/option"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/go-redis/redis"
+
+	"cloud.google.com/go/translate"
+	"golang.org/x/net/context"
+	"golang.org/x/text/language"
+	"google.golang.org/api/option"
+
+	"translate-on-the-go/cache"
+	"translate-on-the-go/utils"
+
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"translate_go/utils"
 )
 
 type TranslateData struct {
@@ -28,18 +33,17 @@ type TranslationResponse struct {
 }
 
 type App struct {
+	Cache  *cache.Cache
 	Client *translate.Client
 	Router *mux.Router
 }
-
-const apiKey = "TRANSLATE_API_KEY"
 
 func (a *App) Init() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading the .env file")
 	}
 
-	apiKey := os.Getenv(apiKey)
+	apiKey := os.Getenv("TRANSLATE_API_KEY")
 
 	ctx := context.Background()
 
@@ -47,10 +51,10 @@ func (a *App) Init() {
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
-
 	a.Client = client
 	defer client.Close()
 
+	a.Cache = cache.NewCache()
 	a.Router = mux.NewRouter()
 	a.initRoutes()
 }
@@ -60,12 +64,11 @@ func (a *App) Start() {
 
 	fmt.Printf("starting server on port %s \n", port)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port) , a.Router))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), a.Router))
 }
 
 func (a *App) initRoutes() {
 	a.Router.HandleFunc("/", HomeHandler).Methods("GET")
-	a.Router.HandleFunc("/test", TestHandler).Methods("GET")
 
 	a.Router.HandleFunc("/list-languages", a.listLangs).Methods("GET")
 	a.Router.HandleFunc("/translate", a.translateText).Methods("POST")
@@ -84,10 +87,38 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	text := translationData.Text
 
 	lang, err := language.Parse(translationData.Lang)
-
 	if err != nil {
 		msg := "Could not parse the target language.  Verify that it is an available option and formatted correctly (ex. 'en' for english) "
 		utils.RespondWithError(w, http.StatusInternalServerError, msg)
+		return
+	}
+
+	// the key includes the target language code and the text (i.e. "en-hola" for the case of wanting to translate "hola" to english)
+	key := fmt.Sprintf("%s-%s", lang.String(), text)
+
+	// check to see if the translation is in the cache
+	val, err := a.Cache.Get(key)
+	if err != nil {
+		if err == redis.Nil {
+			fmt.Println("the key does not exist")
+		} else {
+			fmt.Println("cache error: ", err.Error())
+			fmt.Println("there was a problem getting the value from the cache. Continuing...")
+		}
+	}
+
+	var transRes = make(map[string]TranslationResponse)
+	if len(val) > 0 {
+		// return the value from the cache
+		var cachedTranslation TranslationResponse
+		err := json.Unmarshal(val, &cachedTranslation)
+		if err != nil {
+			fmt.Println("error marshalling the data to JSON ", err)
+		}
+
+		fmt.Println("got the value from the cache ", cachedTranslation)
+
+		utils.RespondWithJSON(w, http.StatusOK, cachedTranslation)
 		return
 	}
 
@@ -97,12 +128,21 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
 	}
 
-	var transRes = make(map[string]TranslationResponse)
-	transRes["response"] = TranslationResponse{
+	translationObject := TranslationResponse{
 		resp[0].Source,
 		lang,
 		resp[0].Text,
 	}
+
+	// set the translation to the cache
+	err = a.Cache.Set(key, translationObject, 0)
+	if err != nil {
+		fmt.Println("cache set error: ", err.Error())
+
+		fmt.Println("there was a problem setting the value to the cache.")
+	}
+
+	transRes["response"] = translationObject
 
 	utils.RespondWithJSON(w, http.StatusOK, transRes)
 }
@@ -145,16 +185,11 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 func HomeHandler(w http.ResponseWriter, _r *http.Request) {
 	routes := map[string]string{
 		"/list-languages": "GET",
-		"/translate": "POST",
+		"/translate":      "POST",
 	}
 
 	response := map[string]map[string]string{"routes": routes}
 
 	utils.RespondWithJSON(w, http.StatusOK, response)
 	return
-}
-
-func TestHandler(w http.ResponseWriter, _r *http.Request) {
-	response := map[string]string{"test": "success"}
-	utils.RespondWithJSON(w, http.StatusOK, response)
 }
