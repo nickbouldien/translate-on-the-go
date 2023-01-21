@@ -14,9 +14,9 @@ I'm always looking up words/phrases (usually en español ou em português).
 
 
 ### Routes:
+- GET `/` - Index route - responds with the available routes
 - GET `/list-languages?target={target_language_code}` - lists all possible languages to translate to
 - POST `/translate` - translate text to a target language
-- GET `/` - responds with the available routes
 
 target language code info: https://cloud.google.com/translate/docs/languages
 
@@ -78,7 +78,7 @@ response:
 }
 ```
 
-3 - the base/home route to list the available routes
+3 - the index/base route to list the available routes
 
 request:
 ```bash
@@ -95,13 +95,6 @@ response:
   }
 }
 ```
-
-
-### Packages:
-- [go-redis](https://github.com/go-redis/redis)
-- [gorilla mux router](https://github.com/gorilla/mux)
-- [godotenv](https://github.com/joho/godotenv)
-
 
 ### Resources:
 - [Google Translate](https://cloud.google.com/translate/)

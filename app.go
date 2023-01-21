@@ -38,6 +38,18 @@ type App struct {
 	Router *mux.Router
 }
 
+func IndexHandler(w http.ResponseWriter, _r *http.Request) {
+	routes := map[string]string{
+		"/list-languages": "GET",
+		"/translate":      "POST",
+	}
+
+	response := map[string]map[string]string{"routes": routes}
+
+	utils.RespondWithJSON(w, http.StatusOK, response)
+	return
+}
+
 func (a *App) Init() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading the .env file")
@@ -68,7 +80,7 @@ func (a *App) Start() {
 }
 
 func (a *App) initRoutes() {
-	a.Router.HandleFunc("/", HomeHandler).Methods("GET")
+	a.Router.HandleFunc("/", IndexHandler).Methods("GET")
 
 	a.Router.HandleFunc("/list-languages", a.listLangs).Methods("GET")
 	a.Router.HandleFunc("/translate", a.translateText).Methods("POST")
@@ -115,8 +127,6 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("error marshalling the data to JSON ", err)
 		}
-
-		fmt.Println("got the value from the cache ", cachedTranslation)
 
 		utils.RespondWithJSON(w, http.StatusOK, cachedTranslation)
 		return
@@ -179,17 +189,5 @@ func (a *App) listLangs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusOK, langs)
-	return
-}
-
-func HomeHandler(w http.ResponseWriter, _r *http.Request) {
-	routes := map[string]string{
-		"/list-languages": "GET",
-		"/translate":      "POST",
-	}
-
-	response := map[string]map[string]string{"routes": routes}
-
-	utils.RespondWithJSON(w, http.StatusOK, response)
 	return
 }
