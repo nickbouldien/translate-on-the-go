@@ -6,8 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/go-redis/redis"
+	"time"
 
 	"cloud.google.com/go/translate"
 	"golang.org/x/net/context"
@@ -17,6 +16,7 @@ import (
 	"translate-on-the-go/cache"
 	"translate-on-the-go/utils"
 
+	"github.com/go-redis/redis"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
@@ -38,6 +38,9 @@ type App struct {
 	Router *mux.Router
 }
 
+const FIFTEEN_DAYS = time.Second * 86400 * 15
+
+// Returns the available routes
 func IndexHandler(w http.ResponseWriter, _r *http.Request) {
 	routes := map[string]string{
 		"/list-languages": "GET",
@@ -56,18 +59,22 @@ func (a *App) Init() {
 	}
 
 	apiKey := os.Getenv("TRANSLATE_API_KEY")
+	if apiKey == "" {
+		log.Fatal("Missing api key")
+	}
 
 	ctx := context.Background()
 
 	client, err := translate.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		log.Fatalf("Failed to create translation client: %v", err)
 	}
 	a.Client = client
 	defer client.Close()
 
 	a.Cache = cache.NewCache()
 	a.Router = mux.NewRouter()
+
 	a.initRoutes()
 }
 
@@ -96,15 +103,17 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// the decoded translation text
 	text := translationData.Text
 
 	lang, err := language.Parse(translationData.Lang)
 	if err != nil {
 		msg := "Could not parse the target language.  Verify that it is an available option and formatted correctly (ex. 'en' for english) "
-		utils.RespondWithError(w, http.StatusInternalServerError, msg)
+		utils.RespondWithError(w, http.StatusBadRequest, msg)
 		return
 	}
 
+	// TODO - might have to hash/encode this, or only do it for short strings
 	// the key includes the target language code and the text (i.e. "en-hola" for the case of wanting to translate "hola" to english)
 	key := fmt.Sprintf("%s-%s", lang.String(), text)
 
@@ -112,20 +121,21 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	val, err := a.Cache.Get(key)
 	if err != nil {
 		if err == redis.Nil {
-			fmt.Println("the key does not exist")
+			fmt.Println("the key does not exist in the cache")
 		} else {
 			fmt.Println("cache error: ", err.Error())
 			fmt.Println("there was a problem getting the value from the cache. Continuing...")
 		}
 	}
 
-	var transRes = make(map[string]TranslationResponse)
 	if len(val) > 0 {
 		// return the value from the cache
 		var cachedTranslation TranslationResponse
 		err := json.Unmarshal(val, &cachedTranslation)
 		if err != nil {
-			fmt.Println("error marshalling the data to JSON ", err)
+			fmt.Println("error marshalling the cached data to JSON ", err)
+			utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
 
 		utils.RespondWithJSON(w, http.StatusOK, cachedTranslation)
@@ -136,6 +146,12 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	resp, err := a.Client.Translate(ctx, []string{text}, lang, nil)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if len(resp) == 0 {
+		utils.RespondWithError(w, http.StatusBadRequest, fmt.Errorf("Translate returned empty response to text: %s", text).Error())
+		return
 	}
 
 	translationObject := TranslationResponse{
@@ -145,14 +161,15 @@ func (a *App) translateText(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set the translation to the cache
-	err = a.Cache.Set(key, translationObject, 0)
+	err = a.Cache.Set(key, translationObject, FIFTEEN_DAYS)
 	if err != nil {
 		fmt.Println("cache set error: ", err.Error())
-
 		fmt.Println("there was a problem setting the value to the cache.")
 	}
 
-	transRes["response"] = translationObject
+	transRes := map[string]TranslationResponse{
+		"response": translationObject,
+	}
 
 	utils.RespondWithJSON(w, http.StatusOK, transRes)
 }
